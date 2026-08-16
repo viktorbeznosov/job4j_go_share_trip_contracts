@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: pg_contracts
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: share_trip_contracts
+    ports:
+      - "6545:5432"
+    volumes:
+      - pgdata_contracts:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata_contracts:
