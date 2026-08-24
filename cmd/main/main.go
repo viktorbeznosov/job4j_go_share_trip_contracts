@@ -59,7 +59,17 @@ func main() {
 
 	app := fiber.New()
 
+    func() {
+        api.SetupSwagger(app, api.SwaggerConfig{
+            SpecPath: "./internal/api/contract.yaml", // или "./internal/api/contract.yaml"
+            UITitle:  "ShareTrip API Documentation",
+        })
+    }()
+
 	server.Route(app.Group("/api"))
+
+	log.Printf("🚀 Server starting on port %d", cfg.Server.Port)
+	log.Printf("📚 Swagger UI available at http://localhost:%d/swagger", cfg.Server.Port)
 
 	err = app.Listen(fmt.Sprintf(":%d", cfg.Server.Port))
 	if err != nil {

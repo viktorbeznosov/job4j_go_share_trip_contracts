@@ -7,7 +7,7 @@ info:
     компаний и проверки доступности услуг.
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:8082/api
 
 tags:
   - name: Contracts
