@@ -1,10 +1,11 @@
 package entity
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+
+	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
 )
 
 type ContractStatus string
@@ -62,31 +63,26 @@ func (c *Contract) ChangeStatus(newStatus ContractStatus) error {
 		StatusTerminated: true,
 	}
 	if !validStatuses[newStatus] {
-		return fmt.Errorf("invalid status: %s", newStatus)
+		return contractErrors.ErrInvalidStatus
 	}
 
-	// Бизнес-правила для переходов между статусами
 	switch c.Status {
 	case StatusDraft:
-		// Из черновика можно перейти в active или terminated
 		if newStatus != StatusActive && newStatus != StatusTerminated {
-			return fmt.Errorf("cannot change status from %s to %s. Allowed transitions: active, terminated", c.Status, newStatus)
+			return contractErrors.ErrInvalidStatusTransition
 		}
 	case StatusActive:
-		// Из активного можно перейти в suspended или terminated
 		if newStatus != StatusSuspended && newStatus != StatusTerminated {
-			return fmt.Errorf("cannot change status from %s to %s. Allowed transitions: suspended, terminated", c.Status, newStatus)
+			return contractErrors.ErrInvalidStatusTransition
 		}
 	case StatusSuspended:
-		// Из приостановленного можно перейти в active или terminated
 		if newStatus != StatusActive && newStatus != StatusTerminated {
-			return fmt.Errorf("cannot change status from %s to %s. Allowed transitions: active, terminated", c.Status, newStatus)
+			return contractErrors.ErrInvalidStatusTransition
 		}
 	case StatusTerminated:
-		// Из завершенного нельзя перейти никуда
-		return fmt.Errorf("cannot change status from terminated to %s", newStatus)
+		return contractErrors.ErrCannotUpdateTerminated
 	default:
-		return fmt.Errorf("unknown status: %s", c.Status)
+		return contractErrors.ErrUnknownStatus
 	}
 
 	c.Status = newStatus
@@ -96,17 +92,17 @@ func (c *Contract) ChangeStatus(newStatus ContractStatus) error {
 
 func (c *Contract) UpdateServices(services []ContractService) error {
 	if c.Status == StatusTerminated {
-		return fmt.Errorf("cannot update services for terminated contract")
+		return contractErrors.ErrCannotUpdateTerminated
 	}
 
 	if len(services) == 0 {
-		return fmt.Errorf("services list cannot be empty")
+		return contractErrors.ErrServicesListEmpty
 	}
 
 	seen := make(map[ServiceType]bool)
 	for _, s := range services {
 		if seen[s.Service] {
-			return fmt.Errorf("duplicate service: %s", s.Service)
+			return contractErrors.ErrDuplicateService
 		}
 		seen[s.Service] = true
 	}

@@ -6,10 +6,12 @@ import (
 
 type ContractHandler struct {
 	ContractService *service.ContractService
+	errorMapper     *ErrorMapper
 }
 
 func NewContractHandler(contractService *service.ContractService) *ContractHandler {
 	return &ContractHandler{
 		ContractService: contractService,
+		errorMapper:     NewErrorMapper(),
 	}
 }

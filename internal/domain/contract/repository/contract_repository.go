@@ -3,13 +3,13 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
+	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
 )
 
 type ContractRepository interface {
@@ -106,10 +106,25 @@ func (r *MockRepository) Seed() {
 		UpdatedAt: time.Now(),
 	}
 
+	// Компания 5 - Завершенный контракт
+	contract5 := &entity.Contract{
+		ID:        uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+		CompanyID: companyID4,
+		Status:    entity.StatusTerminated,
+		ValidFrom: time.Now().AddDate(-2, 0, 0),
+		ValidTo:   time.Now().AddDate(1, 0, 0),
+		Services: []entity.ContractService{
+			{Service: entity.ServiceTripCreation, Enabled: true},
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
 	r.contracts[contract1.ID] = contract1
 	r.contracts[contract2.ID] = contract2
 	r.contracts[contract3.ID] = contract3
 	r.contracts[contract4.ID] = contract4
+	r.contracts[contract5.ID] = contract5
 	r.companyIDs[companyID1] = contract1.ID
 	r.companyIDs[companyID2] = contract2.ID
 	// Компания 3 не имеет активного контракта (suspended)
@@ -119,7 +134,7 @@ func (r *MockRepository) Seed() {
 func (r *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Contract, error) {
 	contract, exists := r.contracts[id]
 	if !exists {
-		return nil, fmt.Errorf("contract with id %s not found", id)
+		return nil, contractErrors.ErrContractNotFound
 	}
 	return contract, nil
 }
@@ -127,12 +142,12 @@ func (r *MockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entity.Con
 func (r *MockRepository) Create(ctx context.Context, contract *entity.Contract) error {
 	if contract.Status == entity.StatusActive {
 		if _, exists := r.companyIDs[contract.CompanyID]; exists {
-			return fmt.Errorf("company already has an active contract")
+			return contractErrors.ErrCompanyAlreadyHasActiveContract
 		}
 	}
 
 	r.contracts[contract.ID] = contract
-	
+
 	if contract.Status == entity.StatusActive {
 		r.companyIDs[contract.CompanyID] = contract.ID
 	}
@@ -143,12 +158,12 @@ func (r *MockRepository) Create(ctx context.Context, contract *entity.Contract) 
 func (r *MockRepository) Update(ctx context.Context, contract *entity.Contract) error {
 	existing, exists := r.contracts[contract.ID]
 	if !exists {
-		return fmt.Errorf("contract with id %s not found", contract.ID)
+		return contractErrors.ErrContractNotFound
 	}
 
 	if contract.Status == entity.StatusActive && existing.Status != entity.StatusActive {
 		if activeContractID, exists := r.companyIDs[contract.CompanyID]; exists && activeContractID != contract.ID {
-			return fmt.Errorf("company already has an active contract: %s", activeContractID)
+			return contractErrors.ErrCompanyAlreadyHasActiveContract
 		}
 	}
 
@@ -168,17 +183,17 @@ func (r *MockRepository) Update(ctx context.Context, contract *entity.Contract) 
 func (r *MockRepository) GetActiveByCompanyID(ctx context.Context, companyID uuid.UUID) (*entity.Contract, error) {
 	contractID, exists := r.companyIDs[companyID]
 	if !exists {
-		return nil, fmt.Errorf("no active contract found for company %s", companyID)
+		return nil, contractErrors.ErrActiveContractNotFound
 	}
 
 	contract, exists := r.contracts[contractID]
 	if !exists {
-		return nil, fmt.Errorf("contract %s not found", contractID)
+		return nil, contractErrors.ErrContractNotFound
 	}
 
 	if contract.Status != entity.StatusActive {
 		delete(r.companyIDs, companyID)
-		return nil, fmt.Errorf("contract %s is not active", contractID)
+		return nil, contractErrors.ErrActiveContractNotFound
 	}
 
 	return contract, nil

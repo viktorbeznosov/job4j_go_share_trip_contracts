@@ -17,26 +17,18 @@ func (h *ContractHandler) UpdateServices(c *fiber.Ctx) error {
 
 	contractID, err := uuid.Parse(contractIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			"Invalid contract ID format",
-			err.Error(),
-		))
+		return h.errorMapper.MapParseError(c, err, "Invalid contract ID format")
 	}
 
 	var req request.UpdateServicesRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			"Invalid JSON body",
-			err.Error(),
-		))
+		return h.errorMapper.MapParseError(c, err, "Invalid JSON body")
 	}
 
 	req.ContractID = contractID
 
 	if err := req.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			err.Error(),
-		))
+		return h.errorMapper.MapValidationError(c, err)
 	}
 
 	services := make([]entity.ContractService, len(req.Services))
@@ -49,28 +41,9 @@ func (h *ContractHandler) UpdateServices(c *fiber.Ctx) error {
 
 	contract, err := h.ContractService.UpdateServices(ctx, contractID, services)
 	if err != nil {
-		if err.Error() == "contract with id "+contractID.String()+" not found" {
-			return c.Status(fiber.StatusNotFound).JSON(response.NewErrorResponse(
-				"Contract not found",
-				err.Error(),
-			))
-		}
-
-		if err.Error() == "cannot update services for terminated contract" ||
-			err.Error() == "services list cannot be empty" {
-			return c.Status(fiber.StatusConflict).JSON(response.NewErrorResponse(
-				"Invalid operation",
-				err.Error(),
-			))
-		}
-
-		return c.Status(fiber.StatusInternalServerError).JSON(response.NewErrorResponse(
-			"Failed to update services",
-			err.Error(),
-		))
+		return h.errorMapper.MapError(c, err)
 	}
 
-	// 7. Возвращаем ответ (список услуг)
 	return c.Status(fiber.StatusOK).JSON(response.NewSuccessResponse(
 		convertToServiceResponse(contract.Services),
 	))

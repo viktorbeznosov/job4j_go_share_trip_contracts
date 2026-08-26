@@ -16,10 +16,7 @@ func (h *ContractHandler) CheckAvailability(c *fiber.Ctx) error {
 
 	companyID, err := uuid.Parse(companyIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			"Invalid company ID format",
-			err.Error(),
-		))
+		return h.errorMapper.MapParseError(c, err, "Invalid company ID format")
 	}
 
 	req := &request.CheckAvailabilityRequest{
@@ -27,17 +24,12 @@ func (h *ContractHandler) CheckAvailability(c *fiber.Ctx) error {
 		Service:   service,
 	}
 	if err := req.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			err.Error(),
-		))
+		return h.errorMapper.MapValidationError(c, err)
 	}
 
 	available, reason, err := h.ContractService.CheckAvailability(ctx, companyID, service)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(response.NewErrorResponse(
-			"Failed to check availability",
-			err.Error(),
-		))
+		return h.errorMapper.MapError(c, err)
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response.NewAvailabilityResponse(available, reason))

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
+	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
 	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
 	"job4j_go_share_trip_contracts/internal/domain/contract/repository"
 )
@@ -23,29 +24,35 @@ func NewContractService(repo repository.ContractRepository) *ContractService {
 
 func (s *ContractService) GetByID(ctx context.Context, id uuid.UUID) (*entity.Contract, error) {
 	if id == uuid.Nil {
-		return nil, fmt.Errorf("contract id is required")
+		return nil, contractErrors.ErrInvalidContractID
 	}
 
 	contract, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get contract: %w", err)
+		return nil, err
 	}
 
 	return contract, nil
 }
 
 func (s *ContractService) Create(ctx context.Context, companyID uuid.UUID, validFrom, validTo time.Time, services []entity.ContractService) (*entity.Contract, error) {
+	// Проверяем, нет ли уже активного договора
 	existing, err := s.repo.GetActiveByCompanyID(ctx, companyID)
 	if err == nil && existing != nil {
-		return nil, fmt.Errorf("company already has an active contract")
+		return nil, contractErrors.ErrCompanyAlreadyHasActiveContract
 	}
 
-	contract := entity.NewContract(companyID, validFrom, validTo)
+	// Проверяем даты
+	if validFrom.After(validTo) {
+		return nil, contractErrors.ErrInvalidDateRange
+	}
 
+	// Создаём новый контракт
+	contract := entity.NewContract(companyID, validFrom, validTo)
 	contract.Services = services
 
 	if err := s.repo.Create(ctx, contract); err != nil {
-		return nil, fmt.Errorf("failed to create contract: %w", err)
+		return nil, err
 	}
 
 	return contract, nil
@@ -53,12 +60,12 @@ func (s *ContractService) Create(ctx context.Context, companyID uuid.UUID, valid
 
 func (s *ContractService) GetActiveByCompanyID(ctx context.Context, companyID uuid.UUID) (*entity.Contract, error) {
 	if companyID == uuid.Nil {
-		return nil, fmt.Errorf("company id is required")
+		return nil, contractErrors.ErrInvalidCompanyID
 	}
 
 	contract, err := s.repo.GetActiveByCompanyID(ctx, companyID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get active contract: %w", err)
+		return nil, err
 	}
 
 	return contract, nil
@@ -66,22 +73,22 @@ func (s *ContractService) GetActiveByCompanyID(ctx context.Context, companyID uu
 
 func (s *ContractService) ChangeStatus(ctx context.Context, contractID uuid.UUID, newStatusStr string) (*entity.Contract, error) {
 	if contractID == uuid.Nil {
-		return nil, fmt.Errorf("contract id is required")
+		return nil, contractErrors.ErrInvalidContractID
 	}
 
 	contract, err := s.repo.GetByID(ctx, contractID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get contract: %w", err)
+		return nil, err
 	}
 
 	newStatus := entity.ContractStatus(newStatusStr)
 
 	if err := contract.ChangeStatus(newStatus); err != nil {
-		return nil, fmt.Errorf("invalid status transition: %w", err)
+		return nil, err
 	}
 
 	if err := s.repo.Update(ctx, contract); err != nil {
-		return nil, fmt.Errorf("failed to update contract: %w", err)
+		return nil, err
 	}
 
 	return contract, nil
@@ -89,28 +96,28 @@ func (s *ContractService) ChangeStatus(ctx context.Context, contractID uuid.UUID
 
 func (s *ContractService) UpdateServices(ctx context.Context, contractID uuid.UUID, services []entity.ContractService) (*entity.Contract, error) {
 	if contractID == uuid.Nil {
-		return nil, fmt.Errorf("contract id is required")
+		return nil, contractErrors.ErrInvalidContractID
 	}
 
 	if len(services) == 0 {
-		return nil, fmt.Errorf("services list cannot be empty")
+		return nil, contractErrors.ErrServicesListEmpty
 	}
 
 	contract, err := s.repo.GetByID(ctx, contractID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get contract: %w", err)
+		return nil, err
 	}
 
 	if contract.Status == entity.StatusTerminated {
-		return nil, fmt.Errorf("cannot update services for terminated contract")
+		return nil, contractErrors.ErrCannotUpdateTerminated
 	}
 
 	if err := contract.UpdateServices(services); err != nil {
-		return nil, fmt.Errorf("failed to update services: %w", err)
+		return nil, err
 	}
 
 	if err := s.repo.Update(ctx, contract); err != nil {
-		return nil, fmt.Errorf("failed to update contract: %w", err)
+		return nil, err
 	}
 
 	return contract, nil
@@ -118,7 +125,7 @@ func (s *ContractService) UpdateServices(ctx context.Context, contractID uuid.UU
 
 func (s *ContractService) CheckAvailability(ctx context.Context, companyID uuid.UUID, serviceTypeStr string) (bool, string, error) {
 	if companyID == uuid.Nil {
-		return false, "", fmt.Errorf("company id is required")
+		return false, "", contractErrors.ErrInvalidCompanyID
 	}
 
 	contract, err := s.repo.GetActiveByCompanyID(ctx, companyID)

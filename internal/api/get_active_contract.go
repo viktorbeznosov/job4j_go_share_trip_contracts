@@ -15,41 +15,23 @@ func (h *ContractHandler) GetActiveContract(c *fiber.Ctx) error {
 
 	companyID, err := uuid.Parse(companyIDStr)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			"Invalid company ID format",
-			err.Error(),
-		))
+		return h.errorMapper.MapParseError(c, err, "Invalid company ID format")
 	}
 
 	req := &request.GetActiveContractRequest{
 		CompanyID: companyID,
 	}
 	if err := req.Validate(); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			err.Error(),
-		))
+		return h.errorMapper.MapValidationError(c, err)
 	}
 
 	contract, err := h.ContractService.GetActiveByCompanyID(ctx, companyID)
 	if err != nil {
-		if err.Error() == "no active contract found for company "+companyID.String() ||
-			err.Error() == "contract "+contract.ID.String()+" is not active" {
-			return c.Status(fiber.StatusNotFound).JSON(response.NewErrorResponse(
-				"Active contract not found",
-				err.Error(),
-			))
-		}
-
-		return c.Status(fiber.StatusInternalServerError).JSON(response.NewErrorResponse(
-			"Failed to get active contract",
-			err.Error(),
-		))
+		return h.errorMapper.MapError(c, err)
 	}
 
-	// 5. Возвращаем ответ
 	return c.Status(fiber.StatusOK).JSON(response.NewSuccessResponse(
 		response.FromEntity(contract),
 	))
 }
-
 
