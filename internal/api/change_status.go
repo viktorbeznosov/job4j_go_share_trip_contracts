@@ -4,32 +4,31 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"job4j_go_share_trip_contracts/gen"
 	"job4j_go_share_trip_contracts/internal/domain/contract/request"
 	"job4j_go_share_trip_contracts/internal/domain/contract/response"
 )
 
-func (h *ContractHandler) ChangeStatus(c *fiber.Ctx) error {
+// ChangeContractStatus Изменить статус договора
+// (PATCH /contracts/{contractId}/status)
+func (h *ContractHandler) ChangeContractStatus(c *fiber.Ctx, contractId gen.ContractId) error {
 	ctx := c.UserContext()
 
-	contractIDStr := c.Params("contractId")
-
-	contractID, err := uuid.Parse(contractIDStr)
-	if err != nil {
-		return h.errorMapper.MapParseError(c, err, "Invalid contract ID format")
-	}
+	// contractId уже является uuid.UUID (через openapi_types.UUID)
+	id := uuid.UUID(contractId)
 
 	var req request.ChangeStatusRequest
 	if err := c.BodyParser(&req); err != nil {
 		return h.errorMapper.MapParseError(c, err, "Invalid JSON body")
 	}
 
-	req.ContractID = contractID
+	req.ContractID = id
 
 	if err := req.Validate(); err != nil {
 		return h.errorMapper.MapValidationError(c, err)
 	}
 
-	contract, err := h.ContractService.ChangeStatus(ctx, contractID, req.Status)
+	contract, err := h.ContractService.ChangeStatus(ctx, id, req.Status)
 	if err != nil {
 		return h.errorMapper.MapError(c, err)
 	}
@@ -38,5 +37,3 @@ func (h *ContractHandler) ChangeStatus(c *fiber.Ctx) error {
 		response.FromEntity(contract),
 	))
 }
-
-

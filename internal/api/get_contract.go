@@ -4,23 +4,19 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"job4j_go_share_trip_contracts/gen"
 	"job4j_go_share_trip_contracts/internal/domain/contract/response"
 )
 
-func (h *ContractHandler) GetContract(c *fiber.Ctx) error {
+// GetContract Получить договор по идентификатору
+// (GET /contracts/{contractId})
+func (h *ContractHandler) GetContract(c *fiber.Ctx, contractId gen.ContractId) error {
 	ctx := c.UserContext()
 
-	contractIDStr := c.Params("contractId")
+	// contractId уже является uuid.UUID (через openapi_types.UUID)
+	id := uuid.UUID(contractId)
 
-	contractID, err := uuid.Parse(contractIDStr)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(response.NewErrorResponse(
-			"Invalid contract ID format",
-			err.Error(),
-		))
-	}
-
-	contract, err := h.ContractService.GetByID(ctx, contractID)
+	contract, err := h.ContractService.GetByID(ctx, id)
 	if err != nil {
 		return h.errorMapper.MapError(c, err)
 	}

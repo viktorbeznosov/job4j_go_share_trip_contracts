@@ -1,7 +1,7 @@
 # Переменные
 GO := go
 GO_PKG := ./...
-DOCKER_COMPOSE := docker compose --project-directory ./deploy
+DOCKER_COMPOSE := docker compose -p contracts --project-directory ./deploy
 
 DB_USER ?= postgres
 DB_PASSWORD ?= password
@@ -11,7 +11,26 @@ DB_PORT ?= 6545
 DB_SSLMODE ?= disable
 DB_DSN = user=$(DB_USER) password=$(DB_PASSWORD) dbname=$(DB_NAME) host=$(DB_HOST) port=$(DB_PORT) sslmode=$(DB_SSLMODE)
 
-run:
+OAPI_CODEGEN_VERSION := v2.8.0
+GOEXE := $(shell go env GOEXE)
+OAPI_CODEGEN_BIN := bin/oapi-codegen$(GOEXE)
+OAPI_CODEGEN := ./$(OAPI_CODEGEN_BIN)
+
+export GOBIN := $(CURDIR)/bin
+
+.PHONY: tools generate generate-api run
+
+tools: $(OAPI_CODEGEN_BIN)
+
+$(OAPI_CODEGEN_BIN):
+	go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION)
+
+generate: generate-api
+
+generate-api: $(OAPI_CODEGEN_BIN)
+	$(OAPI_CODEGEN) --config internal/api/openapi.codegen.yaml internal/api/contract.yaml
+
+run: generate
 	go1.25.5 run cmd/main/main.go
 
 # Цель по умолчанию

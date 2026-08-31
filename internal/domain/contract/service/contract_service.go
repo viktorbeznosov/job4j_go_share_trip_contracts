@@ -150,3 +150,35 @@ func (s *ContractService) CheckAvailability(ctx context.Context, companyID uuid.
 
 	return true, "", nil
 }
+
+func (s *ContractService) SignContract(
+	ctx context.Context,
+	contractID uuid.UUID,
+) (*entity.Contract, error) {
+	if contractID == uuid.Nil {
+		return nil, contractErrors.ErrInvalidContractID
+	}
+
+	// Получаем контракт
+	contract, err := s.repo.GetByID(ctx, contractID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Проверяем, что контракт не истёк
+	if contract.IsExpired() {
+		return nil, contractErrors.ErrContractExpired
+	}
+
+	// Меняем статус на active
+	if err := contract.ChangeStatus(entity.StatusActive); err != nil {
+		return nil, err
+	}
+
+	// Сохраняем изменения
+	if err := s.repo.Update(ctx, contract); err != nil {
+		return nil, err
+	}
+
+	return contract, nil
+}

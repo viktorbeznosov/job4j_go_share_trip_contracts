@@ -1,31 +1,30 @@
+// internal/domain/contract/handler/update_services.go
 package api
 
 import (
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"job4j_go_share_trip_contracts/gen"
 	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
 	"job4j_go_share_trip_contracts/internal/domain/contract/request"
 	"job4j_go_share_trip_contracts/internal/domain/contract/response"
 )
 
-func (h *ContractHandler) UpdateServices(c *fiber.Ctx) error {
+// UpdateContractServices Добавить или обновить список доступных услуг
+// (PUT /contracts/{contractId}/services)
+func (h *ContractHandler) UpdateContractServices(c *fiber.Ctx, contractId gen.ContractId) error {
 	ctx := c.UserContext()
 
-	contractIDStr := c.Params("contractId")
-
-	contractID, err := uuid.Parse(contractIDStr)
-	if err != nil {
-		return h.errorMapper.MapParseError(c, err, "Invalid contract ID format")
-	}
+	// contractId уже является uuid.UUID (через openapi_types.UUID)
+	id := uuid.UUID(contractId)
 
 	var req request.UpdateServicesRequest
 	if err := c.BodyParser(&req); err != nil {
 		return h.errorMapper.MapParseError(c, err, "Invalid JSON body")
 	}
 
-	req.ContractID = contractID
+	req.ContractID = id
 
 	if err := req.Validate(); err != nil {
 		return h.errorMapper.MapValidationError(c, err)
@@ -39,7 +38,7 @@ func (h *ContractHandler) UpdateServices(c *fiber.Ctx) error {
 		}
 	}
 
-	contract, err := h.ContractService.UpdateServices(ctx, contractID, services)
+	contract, err := h.ContractService.UpdateServices(ctx, id, services)
 	if err != nil {
 		return h.errorMapper.MapError(c, err)
 	}
@@ -49,6 +48,7 @@ func (h *ContractHandler) UpdateServices(c *fiber.Ctx) error {
 	))
 }
 
+// convertToServiceResponse конвертирует доменные услуги в ответ
 func convertToServiceResponse(services []entity.ContractService) []response.ContractServiceResponse {
 	result := make([]response.ContractServiceResponse, len(services))
 	for i, s := range services {
@@ -59,5 +59,3 @@ func convertToServiceResponse(services []entity.ContractService) []response.Cont
 	}
 	return result
 }
-
-

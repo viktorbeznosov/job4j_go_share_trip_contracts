@@ -21,6 +21,7 @@ var (
     ErrInvalidDateRange = errors.New("invalid date range")
     ErrMissingRequiredField = errors.New("missing required field")
     ErrServiceFailed = errors.New("service operation failed")
+    ErrContractNotDraft = errors.New("contract must be in draft status")
 )
 
 func GetErrorMessage(err error) string {
@@ -59,6 +60,8 @@ func GetErrorMessage(err error) string {
 		return "Invalid date range"
 	case errors.Is(err, ErrMissingRequiredField):
 		return "Missing required field"
+	case errors.Is(err, ErrContractNotDraft):
+		return "contract must be in draft status"
 	default:
 		return "Internal server error"
 	}
@@ -73,7 +76,8 @@ func GetHTTPStatus(err error) int {
 		errors.Is(err, ErrInvalidStatusTransition),
 		errors.Is(err, ErrCannotUpdateTerminated),
 		errors.Is(err, ErrContractExpired),
-		errors.Is(err, ErrServiceNotEnabled):
+		errors.Is(err, ErrServiceNotEnabled),
+		errors.Is(err, ErrContractNotDraft):
 		return 409
 	case errors.Is(err, ErrServicesListEmpty),
 		errors.Is(err, ErrDuplicateService),

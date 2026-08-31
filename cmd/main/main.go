@@ -66,10 +66,7 @@ func main() {
         })
     }()
 
-	server.Route(app.Group("/api"))
-
-	log.Printf("🚀 Server starting on port %d", cfg.Server.Port)
-	log.Printf("📚 Swagger UI available at http://localhost:%d/swagger", cfg.Server.Port)
+	api.RegisterRoutes(app.Group("/api"), server)
 
 	err = app.Listen(fmt.Sprintf(":%d", cfg.Server.Port))
 	if err != nil {
