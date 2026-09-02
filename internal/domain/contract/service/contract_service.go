@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 
-	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
+	contractErrors "job4j_go_share_trip_contracts/internal/api/errors"
 	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
 	"job4j_go_share_trip_contracts/internal/domain/contract/repository"
 )

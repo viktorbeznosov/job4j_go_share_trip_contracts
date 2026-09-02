@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
-	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
+	contractErrors "job4j_go_share_trip_contracts/internal/api/errors"
 )
 
 type ContractRepository interface {

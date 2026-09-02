@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"job4j_go_share_trip_contracts/internal/domain/contract/response"
-	contractErrors "job4j_go_share_trip_contracts/internal/domain/contract/errors"
+	contractErrors "job4j_go_share_trip_contracts/internal/api/errors"
 )
 
 type ErrorMapper struct{}
