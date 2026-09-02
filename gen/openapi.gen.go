@@ -5,6 +5,7 @@ package gen
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oapi-codegen/runtime"
@@ -72,8 +73,8 @@ type ChangeStatusRequest struct {
 	Status ContractStatus `json:"status"`
 }
 
-// Contract defines model for Contract.
-type Contract struct {
+// ContractResponse defines model for ContractResponse.
+type ContractResponse struct {
 	CompanyId openapi_types.UUID `json:"companyId"`
 	Id        openapi_types.UUID `json:"id"`
 	Services  []ContractService  `json:"services"`
@@ -103,6 +104,19 @@ type CreateContractRequest struct {
 	Services  *[]ContractServiceInput `json:"services,omitempty"`
 	ValidFrom openapi_types.Date      `json:"validFrom"`
 	ValidTo   openapi_types.Date      `json:"validTo"`
+}
+
+// CreateContractResponse defines model for CreateContractResponse.
+type CreateContractResponse struct {
+	CompanyId openapi_types.UUID `json:"companyId"`
+
+	// CreatedAt Дата и время создания
+	CreatedAt *time.Time         `json:"createdAt,omitempty"`
+	Id        openapi_types.UUID `json:"id"`
+	Services  []ContractService  `json:"services"`
+	Status    ContractStatus     `json:"status"`
+	ValidFrom openapi_types.Date `json:"validFrom"`
+	ValidTo   openapi_types.Date `json:"validTo"`
 }
 
 // Error defines model for Error.

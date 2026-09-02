@@ -1,30 +1,21 @@
 package api
 
 import (
+    "fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
 	"job4j_go_share_trip_contracts/gen"
-	"job4j_go_share_trip_contracts/internal/domain/contract/request"
-	"job4j_go_share_trip_contracts/internal/domain/contract/response"
 )
 
-// CheckServiceAvailability Проверить доступность услуги для компании
-// (GET /companies/{companyId}/services/{service}/availability)
 func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.CompanyId, service gen.Service) error {
 	ctx := c.UserContext()
 
-	// companyId уже является uuid.UUID (через openapi_types.UUID)
 	companyID := uuid.UUID(companyId)
-
-	// service уже является валидным ServiceType
 	serviceType := string(service)
 
-	req := &request.CheckAvailabilityRequest{
-		CompanyID: companyID,
-		Service:   serviceType,
-	}
-	if err := req.Validate(); err != nil {
+	// Валидация прямо в хендлере
+	if err := validateCheckAvailability(companyID, serviceType); err != nil {
 		return h.errorMapper.MapValidationError(c, err)
 	}
 
@@ -33,5 +24,34 @@ func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.C
 		return h.errorMapper.MapError(c, err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.NewAvailabilityResponse(available, reason))
+	// Используем gen.AvailabilityResponse
+	resp := gen.AvailabilityResponse{
+		Available: available,
+		Reason:    &reason, // reason может быть пустой строкой
+	}
+
+	return c.Status(fiber.StatusOK).JSON(resp)
+}
+
+func validateCheckAvailability(companyID uuid.UUID, serviceType string) error {
+	if companyID == uuid.Nil {
+		return fmt.Errorf("companyId is required")
+	}
+
+	if serviceType == "" {
+		return fmt.Errorf("service is required")
+	}
+
+	validServices := map[string]bool{
+		"trip_creation":     true,
+		"trip_participants": true,
+		"notifications":     true,
+		"premium_support":   true,
+	}
+
+	if !validServices[serviceType] {
+		return fmt.Errorf("invalid service: %s. Must be one of: trip_creation, trip_participants, notifications, premium_support", serviceType)
+	}
+
+	return nil
 }

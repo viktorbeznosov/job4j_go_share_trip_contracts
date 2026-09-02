@@ -6,56 +6,56 @@ import (
 	"github.com/google/uuid"
 
 	"job4j_go_share_trip_contracts/gen"
-	"job4j_go_share_trip_contracts/internal/domain/contract/entity"
-	"job4j_go_share_trip_contracts/internal/domain/contract/request"
-	"job4j_go_share_trip_contracts/internal/domain/contract/response"
+	"job4j_go_share_trip_contracts/internal/domain/contract/service"
 )
 
-// UpdateContractServices Добавить или обновить список доступных услуг
-// (PUT /contracts/{contractId}/services)
 func (h *ContractHandler) UpdateContractServices(c *fiber.Ctx, contractId gen.ContractId) error {
 	ctx := c.UserContext()
 
-	// contractId уже является uuid.UUID (через openapi_types.UUID)
 	id := uuid.UUID(contractId)
 
-	var req request.UpdateServicesRequest
+	var req gen.UpdateServicesRequest
 	if err := c.BodyParser(&req); err != nil {
 		return h.errorMapper.MapParseError(c, err, "Invalid JSON body")
 	}
 
-	req.ContractID = id
-
-	if err := req.Validate(); err != nil {
-		return h.errorMapper.MapValidationError(c, err)
+	serviceReq := service.UpdateServicesRequest{
+		ContractID: id,
+		Services:   make([]service.ContractServiceInput, len(req.Services)),
 	}
 
-	services := make([]entity.ContractService, len(req.Services))
 	for i, s := range req.Services {
-		services[i] = entity.ContractService{
-			Service: entity.ServiceType(s.Service),
-			Enabled: s.Enabled,
-		}
-	}
-
-	contract, err := h.ContractService.UpdateServices(ctx, id, services)
-	if err != nil {
-		return h.errorMapper.MapError(c, err)
-	}
-
-	return c.Status(fiber.StatusOK).JSON(response.NewSuccessResponse(
-		convertToServiceResponse(contract.Services),
-	))
-}
-
-// convertToServiceResponse конвертирует доменные услуги в ответ
-func convertToServiceResponse(services []entity.ContractService) []response.ContractServiceResponse {
-	result := make([]response.ContractServiceResponse, len(services))
-	for i, s := range services {
-		result[i] = response.ContractServiceResponse{
+		serviceReq.Services[i] = service.ContractServiceInput{
 			Service: string(s.Service),
 			Enabled: s.Enabled,
 		}
 	}
-	return result
+
+	contractResp, err := h.ContractService.UpdateServices(ctx, serviceReq)
+	if err != nil {
+		return h.errorMapper.MapError(c, err)
+	}
+
+	resp := convertUpdateServicesToGenContractResponse(contractResp)
+
+	return c.Status(fiber.StatusOK).JSON(resp)
+}
+
+func convertUpdateServicesToGenContractResponse(resp *service.UpdateServicesResponse) gen.ContractResponse {
+	services := make([]gen.ContractService, len(resp.Services))
+	for i, s := range resp.Services {
+		services[i] = gen.ContractService{
+			Service: gen.ServiceType(s.Service),
+			Enabled: s.Enabled,
+		}
+	}
+
+	return gen.ContractResponse{
+		Id:        resp.ID,
+		CompanyId: resp.CompanyID,
+		Status:    gen.ContractStatus(resp.Status),
+		ValidFrom: resp.ValidFrom,
+		ValidTo:   resp.ValidTo,
+		Services:  services,
+	}
 }

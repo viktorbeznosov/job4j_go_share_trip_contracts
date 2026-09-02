@@ -5,23 +5,42 @@ import (
 	"github.com/google/uuid"
 
 	"job4j_go_share_trip_contracts/gen"
-	"job4j_go_share_trip_contracts/internal/domain/contract/response"
+	"job4j_go_share_trip_contracts/internal/domain/contract/service"
 )
 
-// GetContract Получить договор по идентификатору
-// (GET /contracts/{contractId})
 func (h *ContractHandler) GetContract(c *fiber.Ctx, contractId gen.ContractId) error {
 	ctx := c.UserContext()
 
-	// contractId уже является uuid.UUID (через openapi_types.UUID)
 	id := uuid.UUID(contractId)
 
-	contract, err := h.ContractService.GetByID(ctx, id)
+	// Получаем DTO от сервиса
+	contractResp, err := h.ContractService.GetByID(ctx, id)
 	if err != nil {
 		return h.errorMapper.MapError(c, err)
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response.NewSuccessResponse(
-		response.FromEntity(contract),
-	))
+	// Конвертируем DTO сервиса в gen.ContractResponse
+	resp := convertServiceToGenContractResponse(contractResp)
+
+	return c.Status(fiber.StatusOK).JSON(resp)
+}
+
+// convertServiceToGenContractResponse конвертирует service.GetContractResponse в gen.ContractResponse
+func convertServiceToGenContractResponse(resp *service.ContractResponse) gen.ContractResponse {
+	services := make([]gen.ContractService, len(resp.Services))
+	for i, s := range resp.Services {
+		services[i] = gen.ContractService{
+			Service: gen.ServiceType(s.Service),
+			Enabled: s.Enabled,
+		}
+	}
+
+	return gen.ContractResponse{
+		Id:        resp.ID,
+		CompanyId: resp.CompanyID,
+		Status:    gen.ContractStatus(resp.Status),
+		ValidFrom: resp.ValidFrom,
+		ValidTo:   resp.ValidTo,
+		Services:  services,
+	}
 }

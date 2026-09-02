@@ -35,7 +35,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contract'
+                $ref: '#/components/schemas/CreateContractResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '409':
@@ -77,7 +77,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contract'
+                $ref: '#/components/schemas/ContractResponse'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -94,7 +94,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contract'
+                $ref: '#/components/schemas/ContractResponse'
         '404':
           description: Активный договор отсутствует
           content:
@@ -121,7 +121,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Contract'
+                $ref: '#/components/schemas/ContractResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -152,9 +152,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ContractService'
+                $ref: '#/components/schemas/ContractResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -207,7 +205,7 @@ components:
         $ref: '#/components/schemas/ServiceType'
 
   schemas:
-    Contract:
+    ContractResponse:
       type: object
       required:
         - id
@@ -318,6 +316,39 @@ components:
           type: string
           nullable: true
           description: Причина отказа, если услуга недоступна
+
+    CreateContractResponse:
+      type: object
+      required:
+        - id
+        - companyId
+        - status
+        - validFrom
+        - validTo
+        - services
+      properties:
+        id:
+          type: string
+          format: uuid
+        companyId:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ContractStatus'
+        validFrom:
+          type: string
+          format: date
+        validTo:
+          type: string
+          format: date
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractService'
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания
 
     SignContractResponse:
       type: object
