@@ -13,19 +13,16 @@ func (h *ContractHandler) GetContract(c *fiber.Ctx, contractId gen.ContractId) e
 
 	id := uuid.UUID(contractId)
 
-	// Получаем DTO от сервиса
 	contractResp, err := h.ContractService.GetByID(ctx, id)
 	if err != nil {
 		return h.errorMapper.MapError(c, err)
 	}
 
-	// Конвертируем DTO сервиса в gen.ContractResponse
 	resp := convertServiceToGenContractResponse(contractResp)
 
 	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
-// convertServiceToGenContractResponse конвертирует service.GetContractResponse в gen.ContractResponse
 func convertServiceToGenContractResponse(resp *service.ContractResponse) gen.ContractResponse {
 	services := make([]gen.ContractService, len(resp.Services))
 	for i, s := range resp.Services {

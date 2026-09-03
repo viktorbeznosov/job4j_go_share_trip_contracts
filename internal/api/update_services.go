@@ -1,4 +1,3 @@
-// internal/domain/contract/handler/update_services.go
 package api
 
 import (

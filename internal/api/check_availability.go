@@ -14,7 +14,6 @@ func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.C
 	companyID := uuid.UUID(companyId)
 	serviceType := string(service)
 
-	// Валидация прямо в хендлере
 	if err := validateCheckAvailability(companyID, serviceType); err != nil {
 		return h.errorMapper.MapValidationError(c, err)
 	}
@@ -24,7 +23,6 @@ func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.C
 		return h.errorMapper.MapError(c, err)
 	}
 
-	// Используем gen.AvailabilityResponse
 	resp := gen.AvailabilityResponse{
 		Available: available,
 		Reason:    &reason, // reason может быть пустой строкой
