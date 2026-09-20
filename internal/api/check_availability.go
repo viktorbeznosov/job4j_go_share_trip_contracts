@@ -14,7 +14,7 @@ func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.C
 	companyID := uuid.UUID(companyId)
 	serviceType := string(service)
 
-	if err := validateCheckAvailability(companyID, serviceType); err != nil {
+	if err := validateCheckAvailability(companyID, service); err != nil {
 		return h.errorMapper.MapValidationError(c, err)
 	}
 
@@ -31,7 +31,7 @@ func (h *ContractHandler) CheckServiceAvailability(c *fiber.Ctx, companyId gen.C
 	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
-func validateCheckAvailability(companyID uuid.UUID, serviceType string) error {
+func validateCheckAvailability(companyID uuid.UUID, serviceType gen.ServiceType) error {
 	if companyID == uuid.Nil {
 		return fmt.Errorf("companyId is required")
 	}
@@ -40,14 +40,7 @@ func validateCheckAvailability(companyID uuid.UUID, serviceType string) error {
 		return fmt.Errorf("service is required")
 	}
 
-	validServices := map[string]bool{
-		"trip_creation":     true,
-		"trip_participants": true,
-		"notifications":     true,
-		"premium_support":   true,
-	}
-
-	if !validServices[serviceType] {
+	if !serviceType.Valid() {
 		return fmt.Errorf("invalid service: %s. Must be one of: trip_creation, trip_participants, notifications, premium_support", serviceType)
 	}
 

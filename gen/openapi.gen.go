@@ -42,6 +42,8 @@ const (
 	PremiumSupport   ServiceType = "premium_support"
 	TripCreation     ServiceType = "trip_creation"
 	TripParticipants ServiceType = "trip_participants"
+	TripPublish      ServiceType = "trip_publish"
+	TripStart        ServiceType = "trip_start"
 )
 
 // Valid indicates whether the value is a known member of the ServiceType enum.
@@ -54,6 +56,10 @@ func (e ServiceType) Valid() bool {
 	case TripCreation:
 		return true
 	case TripParticipants:
+		return true
+	case TripPublish:
+		return true
+	case TripStart:
 		return true
 	default:
 		return false

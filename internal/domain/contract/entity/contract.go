@@ -21,6 +21,8 @@ type ServiceType string
 
 const (
 	ServiceTripCreation    ServiceType = "trip_creation"
+	ServiceTripPublish    ServiceType = "trip_publish"
+	ServiceTripStart    ServiceType = "trip_start"
 	ServiceTripParticipants ServiceType = "trip_participants"
 	ServiceNotifications   ServiceType = "notifications"
 	ServicePremiumSupport  ServiceType = "premium_support"

@@ -395,6 +395,8 @@ components:
       type: string
       enum:
         - trip_creation
+        - trip_publish
+        - trip_start
         - trip_participants
         - notifications
         - premium_support

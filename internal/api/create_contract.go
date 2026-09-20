@@ -65,6 +65,8 @@ func validateCreateContractRequest(req *gen.CreateContractRequest) error {
 
 	validServices := map[gen.ServiceType]bool{
 		gen.TripCreation:     true,
+		gen.TripPublish:      true,
+		gen.TripStart:        true,
 		gen.TripParticipants: true,
 		gen.Notifications:    true,
 		gen.PremiumSupport:   true,

@@ -52,6 +52,7 @@ func (r *MockRepository) Seed() {
 		ValidTo:   time.Now().AddDate(1, 0, 0),
 		Services: []entity.ContractService{
 			{Service: entity.ServiceTripCreation, Enabled: true},
+			{Service: entity.ServiceTripPublish, Enabled: true},
 			{Service: entity.ServiceTripParticipants, Enabled: true},
 			{Service: entity.ServiceNotifications, Enabled: true},
 			{Service: entity.ServicePremiumSupport, Enabled: true},
