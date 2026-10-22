@@ -53,6 +53,7 @@ func (r *MockRepository) Seed() {
 		Services: []entity.ContractService{
 			{Service: entity.ServiceTripCreation, Enabled: true},
 			{Service: entity.ServiceTripPublish, Enabled: true},
+			{Service: entity.ServiceTripStart, Enabled: true},
 			{Service: entity.ServiceTripParticipants, Enabled: true},
 			{Service: entity.ServiceNotifications, Enabled: true},
 			{Service: entity.ServicePremiumSupport, Enabled: true},

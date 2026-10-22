@@ -49,46 +49,47 @@ help:
 test:
 	$(GO) test -v ./internal/...
 
-# --- ПОКРЫТИЕ (ИСПРАВЛЕНО) ---
+# --- ПОКРЫТИЕ ---
+
+COVER_PROFILE := reports/coverage.out
+COVER_PKGS := ./internal/...
+TEST_PKGS := ./internal/...
+
+define run-coverage
+	@mkdir -p reports
+	GOTOOLCHAIN=local $(GO) test -coverprofile=$(COVER_PROFILE) \
+		-coverpkg=$(COVER_PKGS) \
+		$(TEST_PKGS)
+endef
 
 # Генерация отчёта о покрытии
 .PHONY: coverage
 coverage:
 	@echo "Generating coverage..."
-	@mkdir -p reports
-	GOTOOLCHAIN=local go test -coverprofile=reports/coverage.out \
-		-coverpkg=./internal/... \
-		./internal/api_test/... \
-		./internal/domain/trip/...
+	$(run-coverage)
 	@echo ""
 	@echo "Coverage summary:"
-	GOTOOLCHAIN=local go tool cover -func=reports/coverage.out | grep total
+	GOTOOLCHAIN=local $(GO) tool cover -func=$(COVER_PROFILE) | grep total
 
 # Открыть покрытие в браузере
 .PHONY: coverage-html
 coverage-html: coverage
-	GOTOOLCHAIN=local go tool cover -html=reports/coverage.out
+	GOTOOLCHAIN=local $(GO) tool cover -html=$(COVER_PROFILE)
 
-# Вывод покрытия в терминал (исправлено!)
+# Вывод покрытия в терминал
 .PHONY: coverage-report
 coverage-report:
 	@echo "Running tests with coverage..."
-	GOTOOLCHAIN=local go test -coverprofile=reports/coverage.out \
-		-coverpkg=./internal/... \
-		./internal/api_test/... \
-		./internal/domain/trip/...
+	$(run-coverage)
 	@echo ""
 	@echo "Coverage report:"
-	GOTOOLCHAIN=local go tool cover -func=reports/coverage.out
+	GOTOOLCHAIN=local $(GO) tool cover -func=$(COVER_PROFILE)
 
 # Только итоговый процент
 .PHONY: coverage-total
 coverage-total:
-	GOTOOLCHAIN=local go test -coverprofile=reports/coverage.out \
-		-coverpkg=./internal/... \
-		./internal/api_test/... \
-		./internal/domain/trip/...
-	GOTOOLCHAIN=local go tool cover -func=reports/coverage.out | grep total
+	$(run-coverage)
+	GOTOOLCHAIN=local $(GO) tool cover -func=$(COVER_PROFILE) | grep total
 
 # --- ЛИНТЕР ---
 

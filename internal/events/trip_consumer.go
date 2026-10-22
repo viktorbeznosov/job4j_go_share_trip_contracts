@@ -1,0 +1,176 @@
+package events
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+	"time"
+
+	"github.com/segmentio/kafka-go"
+)
+
+type EventType string
+
+const (
+	EventTypeTripCreated   EventType = "trip_created"
+	EventTypeTripPublished EventType = "trip_published"
+	EventTypeTripCompleted EventType = "trip_completed"
+	EventTypeTripCanceled  EventType = "trip_canceled"
+)
+
+type TripEvent struct {
+	EventID       string    `json:"event_id"`
+	EventType     EventType `json:"event_type"`
+	TripID        string    `json:"trip_id"`
+	DriverID      string    `json:"driver_id"`
+	CompanyID     string    `json:"company_id"`
+	CorrelationID string    `json:"correlation_id,omitempty"`
+	CausationID   string    `json:"causation_id,omitempty"`
+	Traceparent   string    `json:"traceparent,omitempty"`
+	OccurredAt    time.Time `json:"occurred_at"`
+}
+
+type messageReader interface {
+	FetchMessage(ctx context.Context) (kafka.Message, error)
+	CommitMessages(ctx context.Context, msgs ...kafka.Message) error
+	Close() error
+}
+
+type Consumer struct {
+	reader messageReader
+}
+
+func NewConsumer(brokers []string, topic string, groupID string) *Consumer {
+	return &Consumer{
+		reader: kafka.NewReader(kafka.ReaderConfig{
+			Brokers:        brokers,
+			Topic:          topic,
+			GroupID:        groupID,
+			StartOffset:    kafka.FirstOffset,
+			MinBytes:       1,
+			MaxBytes:       10e6,
+			CommitInterval: 0,
+		}),
+	}
+}
+
+func (c *Consumer) Run(
+	ctx context.Context,
+	handler func(context.Context, TripEvent) error,
+) error {
+	for {
+		msg, err := c.reader.FetchMessage(ctx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return err
+			}
+			slog.Error("failed to fetch kafka message", slog.Any("error", err))
+			if !sleep(ctx, time.Second) {
+				return ctx.Err()
+			}
+			continue
+		}
+
+		if err := c.process(ctx, msg, handler); err != nil {
+			return err
+		}
+	}
+}
+
+func (c *Consumer) process(
+	ctx context.Context,
+	msg kafka.Message,
+	handler func(context.Context, TripEvent) error,
+) error {
+	var event TripEvent
+	if err := json.Unmarshal(msg.Value, &event); err != nil {
+		slog.Error("skip invalid kafka message", slog.Any("error", err))
+		return c.commit(ctx, msg)
+	}
+
+	applyMetadata(&event, metadataFromHeaders(msg))
+
+	if event.EventType != EventTypeTripCreated &&
+		event.EventType != EventTypeTripPublished &&
+		event.EventType != EventTypeTripCompleted &&
+		event.EventType != EventTypeTripCanceled {
+		slog.Info("skip unsupported event type",
+			slog.String("service", "contracts"),
+			slog.String("operation", "ConsumeTripEvent"),
+			slog.String("event_type", string(event.EventType)),
+			slog.String("event_id", event.EventID),
+			slog.String("correlation_id", event.CorrelationID),
+		)
+		return c.commit(ctx, msg)
+	}
+
+	operation := consumeOperation(event.EventType)
+	slog.Info("consume trip event started",
+		slog.String("service", "contracts"),
+		slog.String("operation", operation),
+		slog.String("event_id", event.EventID),
+		slog.String("correlation_id", event.CorrelationID),
+		slog.String("causation_id", event.CausationID),
+		slog.String("trace_id", TraceIDFromParent(event.Traceparent)),
+		slog.String("result", "started"),
+	)
+
+	for {
+		if err := handler(ctx, event); err != nil {
+			slog.Error("failed to process trip event",
+				slog.String("service", "contracts"),
+				slog.String("operation", operation),
+				slog.String("event_id", event.EventID),
+				slog.String("correlation_id", event.CorrelationID),
+				slog.Any("error", err),
+			)
+			if !sleep(ctx, time.Second) {
+				return ctx.Err()
+			}
+			continue
+		}
+		break
+	}
+
+	return c.commit(ctx, msg)
+}
+
+func (c *Consumer) commit(ctx context.Context, msg kafka.Message) error {
+	if err := c.reader.CommitMessages(ctx, msg); err != nil {
+		slog.Error("failed to commit kafka offset", slog.Any("error", err))
+		return err
+	}
+	return nil
+}
+
+func (c *Consumer) Close() error {
+	return c.reader.Close()
+}
+
+func consumeOperation(eventType EventType) string {
+	switch eventType {
+	case EventTypeTripCreated:
+		return "ConsumeTripCreated"
+	case EventTypeTripPublished:
+		return "ConsumeTripPublished"
+	case EventTypeTripCompleted:
+		return "ConsumeTripCompleted"
+	case EventTypeTripCanceled:
+		return "ConsumeTripCanceled"
+	default:
+		return "ConsumeTripEvent"
+	}
+}
+
+func sleep(ctx context.Context, d time.Duration) bool {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}

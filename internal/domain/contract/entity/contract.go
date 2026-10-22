@@ -11,21 +11,21 @@ import (
 type ContractStatus string
 
 const (
-	StatusDraft     ContractStatus = "draft"
-	StatusActive    ContractStatus = "active"
-	StatusSuspended ContractStatus = "suspended"
+	StatusDraft      ContractStatus = "draft"
+	StatusActive     ContractStatus = "active"
+	StatusSuspended  ContractStatus = "suspended"
 	StatusTerminated ContractStatus = "terminated"
 )
 
 type ServiceType string
 
 const (
-	ServiceTripCreation    ServiceType = "trip_creation"
-	ServiceTripPublish    ServiceType = "trip_publish"
-	ServiceTripStart    ServiceType = "trip_start"
+	ServiceTripCreation     ServiceType = "trip_creation"
+	ServiceTripPublish      ServiceType = "trip_publish"
+	ServiceTripStart        ServiceType = "trip_start"
 	ServiceTripParticipants ServiceType = "trip_participants"
-	ServiceNotifications   ServiceType = "notifications"
-	ServicePremiumSupport  ServiceType = "premium_support"
+	ServiceNotifications    ServiceType = "notifications"
+	ServicePremiumSupport   ServiceType = "premium_support"
 )
 
 type ContractService struct {
@@ -34,14 +34,17 @@ type ContractService struct {
 }
 
 type Contract struct {
-	ID          uuid.UUID          `json:"id"`
-	CompanyID   uuid.UUID          `json:"companyId"`
-	Status      ContractStatus     `json:"status"`
-	ValidFrom   time.Time          `json:"validFrom"`
-	ValidTo     time.Time          `json:"validTo"`
-	Services    []ContractService  `json:"services"`
-	CreatedAt   time.Time          `json:"createdAt"`
-	UpdatedAt   time.Time          `json:"updatedAt"`
+	ID        uuid.UUID         `json:"id"`
+	CompanyID uuid.UUID         `json:"companyId"`
+	UserID    uuid.UUID         `json:"userId,omitempty"`
+	Status    ContractStatus    `json:"status"`
+	ValidFrom time.Time         `json:"validFrom"`
+	ValidTo   time.Time         `json:"validTo"`
+	StartDate *time.Time        `json:"startDate,omitempty"`
+	EndDate   *time.Time        `json:"endDate,omitempty"`
+	Services  []ContractService `json:"services"`
+	CreatedAt time.Time         `json:"createdAt"`
+	UpdatedAt time.Time         `json:"updatedAt"`
 }
 
 func NewContract(companyID uuid.UUID, validFrom, validTo time.Time) *Contract {
@@ -59,9 +62,9 @@ func NewContract(companyID uuid.UUID, validFrom, validTo time.Time) *Contract {
 
 func (c *Contract) ChangeStatus(newStatus ContractStatus) error {
 	validStatuses := map[ContractStatus]bool{
-		StatusDraft:     true,
-		StatusActive:    true,
-		StatusSuspended: true,
+		StatusDraft:      true,
+		StatusActive:     true,
+		StatusSuspended:  true,
 		StatusTerminated: true,
 	}
 	if !validStatuses[newStatus] {
